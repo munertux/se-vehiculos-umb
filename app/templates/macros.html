@@ -1,0 +1,56 @@
+{# Componentes reutilizables de la interfaz #}
+
+{% macro csrf() -%}
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+{%- endmacro %}
+
+{% macro encabezado(titulo, migas=None) -%}
+<div class="encabezado-pagina">
+  <div>
+    {% if migas %}<div class="migas">{% for texto, url in migas %}{% if url %}<a href="{{ url }}">{{ texto }}</a>{% else %}{{ texto }}{% endif %}{% if not loop.last %} › {% endif %}{% endfor %}</div>{% endif %}
+    <h1>{{ titulo }}</h1>
+  </div>
+  {% if caller is defined %}<div class="acciones">{{ caller() }}</div>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro nivel(texto) -%}
+{% if texto %}<span class="nivel {{ texto|clase_nivel }}">{{ texto|tildes }}</span>{% else %}<span class="texto-3">—</span>{% endif %}
+{%- endmacro %}
+
+{% macro estado_activo(activo) -%}
+{% if activo %}<span class="insignia verde">Activa</span>{% else %}<span class="insignia gris">Inactiva</span>{% endif %}
+{%- endmacro %}
+
+{% macro estado_atencion(estado) -%}
+{% set e = (estado or '')|lower %}
+{% if e.startswith('finaliz') %}<span class="insignia verde">Finalizada</span>
+{% elif e == 'en_curso' %}<span class="insignia ambar">En curso</span>
+{% elif e %}<span class="insignia gris">{{ estado|replace('_', ' ')|capitalize }}</span>
+{% else %}<span class="texto-3">—</span>{% endif %}
+{%- endmacro %}
+
+{% macro reglas(codigos) -%}
+{% set lista_codigos = codigos|lista %}
+{% if lista_codigos %}{% for c in lista_codigos %}<span class="codigo-regla">{{ c }}</span>{% endfor %}{% else %}<span class="texto-3">—</span>{% endif %}
+{%- endmacro %}
+
+{% macro icono_alerta() -%}
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+{%- endmacro %}
+
+{% macro advertencia_critica() -%}
+<div class="advertencia" role="alert">
+  {{ icono_alerta() }}
+  <div>Atención: una de las hipótesis indica que el vehículo no debe seguir usándose.
+    <small>Detenga el vehículo en un lugar seguro y solicite una revisión especializada antes de volver a conducirlo.</small></div>
+</div>
+{%- endmacro %}
+
+{% macro barra_probabilidad(valor) -%}
+{% set v = (valor or 0)|float %}
+<div class="probabilidad">
+  <div class="probabilidad-barra"><i style="width: {{ [v, 100]|min }}%"></i></div>
+  <strong>{{ v|porcentaje }}</strong>
+</div>
+{%- endmacro %}

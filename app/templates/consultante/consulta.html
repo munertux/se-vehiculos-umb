@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "macros.html" import encabezado, icono_alerta with context %}
+{% block titulo %}Consulta en curso{% endblock %}
+{% block contenido %}
+{{ encabezado('Consulta al sistema experto', [('Historial', url_for('consultante.historial')), ('Consulta n.º ' ~ datos.id_atencion, None)]) }}
+
+<div class="consulta-contexto">
+  {% if d.vehiculo %}<span>Vehículo: <strong>{{ d.vehiculo.placa }} · {{ d.vehiculo.marca }} {{ d.vehiculo.modelo }}</strong></span>{% endif %}
+  {% if d.area %}<span>Área: <strong>{{ d.area|tildes }}</strong></span>{% endif %}
+  {% if d.testigos %}<span>Testigos: <strong>{{ d.testigos|map('tildes')|join(', ') }}</strong></span>{% endif %}
+  {% if d.codigos_obd %}<span>OBD-II: <strong class="mono">{{ d.codigos_obd|join(', ') }}</strong></span>{% endif %}
+</div>
+
+<section id="pantalla-pregunta" class="panel">
+  <div class="progreso-info"><span id="texto-progreso">Pregunta {{ datos.n }}</span><span>Responda según lo que observa en el vehículo</span></div>
+  <div class="progreso"><div id="barra-progreso" class="barra"></div></div>
+  <div class="tarjeta-pregunta">
+    <div class="pregunta-num" id="num-pregunta">Pregunta {{ datos.n }}</div>
+    <p id="texto-pregunta" class="pregunta">{{ datos.pregunta.enunciado if datos.pregunta else '' }}</p>
+    <div id="opciones-respuesta" class="escala" role="group" aria-label="Escala de respuesta"></div>
+  </div>
+  <div id="error-consulta" class="aviso error oculto" style="margin-top:16px"></div>
+  <div class="consulta-pie">
+    <span class="pequeno texto-3">El sistema se detiene cuando reúne evidencia suficiente o se agotan las preguntas del área.</span>
+    <button id="btn-finalizar" class="boton chico" type="button">Terminar y ver resultado</button>
+  </div>
+</section>
+
+<section id="pantalla-resultado" class="oculto">
+  <div id="advertencia" class="advertencia oculto" role="alert">
+    {{ icono_alerta() }}
+    <div>Atención: una de las hipótesis indica que el vehículo no debe seguir usándose.
+      <small>Detenga el vehículo en un lugar seguro y solicite una revisión especializada antes de volver a conducirlo.</small></div>
+  </div>
+  <div class="panel">
+    <div class="panel-cabeza">
+      <h2>Hipótesis de falla más probables</h2>
+      <div class="acciones">
+        <a class="boton chico" href="{{ url_for('consultante.detalle', id_atencion=datos.id_atencion) }}">Ver detalle</a>
+        <a class="boton chico" href="{{ url_for('consultante.reporte', id_atencion=datos.id_atencion) }}" target="_blank" rel="noopener">Reporte imprimible</a>
+      </div>
+    </div>
+    <div id="resultados" class="resultados"></div>
+    <div class="consulta-pie">
+      <span class="pequeno texto-3">Cuando un técnico confirme la causa, márquela con «Confirmar falla real» para retroalimentar la base de conocimiento.</span>
+      <a class="boton primario" href="{{ url_for('consultante.consulta_nueva') }}">Nueva consulta</a>
+    </div>
+  </div>
+</section>
+
+<script type="application/json" id="datos-consulta">{{ datos|tojson }}</script>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='consulta.js') }}"></script>{% endblock %}

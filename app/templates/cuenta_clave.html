@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf, encabezado with context %}
+{% block titulo %}Cambiar contraseña{% endblock %}
+{% block clase_main %}estrecho{% endblock %}
+{% block contenido %}
+{{ encabezado('Cambiar contraseña') }}
+<form class="panel" method="post" autocomplete="off" style="max-width:520px">
+  {{ csrf() }}
+  <div class="campo" style="margin-bottom:14px">
+    <label for="clave_actual" class="requerido">Contraseña actual</label>
+    <input type="password" id="clave_actual" name="clave_actual" required autocomplete="current-password">
+  </div>
+  <div class="campo" style="margin-bottom:14px">
+    <label for="clave_nueva" class="requerido">Contraseña nueva</label>
+    <input type="password" id="clave_nueva" name="clave_nueva" required minlength="8" autocomplete="new-password">
+    <p class="ayuda">Mínimo 8 caracteres.</p>
+  </div>
+  <div class="campo">
+    <label for="clave_confirmacion" class="requerido">Confirmar contraseña nueva</label>
+    <input type="password" id="clave_confirmacion" name="clave_confirmacion" required minlength="8" autocomplete="new-password">
+  </div>
+  <div class="form-pie">
+    <a class="boton" href="{{ url_for('inicio') }}">Cancelar</a>
+    <button type="submit" class="boton primario">Guardar contraseña</button>
+  </div>
+</form>
+{% endblock %}

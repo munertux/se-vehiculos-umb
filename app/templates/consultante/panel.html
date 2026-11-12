@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% from "macros.html" import encabezado, estado_atencion with context %}
+{% block titulo %}Panel{% endblock %}
+{% block contenido %}
+{% call encabezado('Bienvenido, ' ~ (usuario_actual.nombres or usuario_actual.nombre_usuario)) %}
+  <a class="boton primario" href="{{ url_for('consultante.consulta_nueva') }}">Nueva consulta</a>
+{% endcall %}
+
+<div class="kpis">
+  <div class="kpi"><div class="kpi-etiqueta">Vehículos activos</div><div class="kpi-valor">{{ vehiculos|length }}</div></div>
+  <div class="kpi"><div class="kpi-etiqueta">Consultas realizadas</div><div class="kpi-valor">{{ total_consultas }}</div></div>
+  <div class="kpi"><div class="kpi-etiqueta">Consultas finalizadas</div><div class="kpi-valor">{{ total_finalizadas }}</div></div>
+  <div class="kpi"><div class="kpi-etiqueta">Fallas reales confirmadas</div><div class="kpi-valor">{{ total_confirmadas }}</div></div>
+</div>
+
+<div class="rejilla rejilla-3-1">
+  <section class="panel sin-relleno">
+    <div class="panel-cabeza">
+      <h2>Consultas recientes</h2>
+      <a class="boton chico" href="{{ url_for('consultante.historial') }}">Ver historial completo</a>
+    </div>
+    {% if historial %}
+    <div class="tabla-envoltura" style="margin-top:12px">
+    <table class="tabla">
+      <thead><tr><th>Fecha</th><th>Vehículo</th><th>Área</th><th>Hipótesis principal</th><th class="num">Prob.</th><th>Estado</th></tr></thead>
+      <tbody>
+      {% for h in historial %}
+        <tr>
+          <td class="fecha"><a href="{{ url_for('consultante.detalle', id_atencion=h.id_atencion) }}">{{ h.fecha|fecha }}</a></td>
+          <td class="mono">{{ h.placa or '—' }}</td>
+          <td>{{ (h.area or '—')|tildes }}</td>
+          <td>{{ (h.hipotesis_principal or '—')|tildes }}</td>
+          <td class="num">{{ h.probabilidad|porcentaje }}</td>
+          <td>{{ estado_atencion(h.estado) }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p class="vacio">Aún no ha realizado consultas. Registre su vehículo y comience una consulta al sistema experto.</p>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <div class="panel-cabeza" style="margin-bottom:6px">
+      <h2>Mis vehículos</h2>
+      <a class="boton chico" href="{{ url_for('consultante.vehiculo_nuevo') }}">Agregar</a>
+    </div>
+    {% for v in vehiculos %}
+      <div style="display:flex; justify-content:space-between; gap:10px; align-items:center; padding:9px 0; {% if not loop.last %}border-bottom:1px solid #efedea{% endif %}">
+        <div>
+          <strong class="mono">{{ v.placa }}</strong>
+          <div class="pequeno texto-2">{{ v.marca }} {{ v.modelo }}{% if v.anio %} · {{ v.anio }}{% endif %}</div>
+        </div>
+        <a class="boton chico" href="{{ url_for('consultante.consulta_nueva', vehiculo=v.id_vehiculo) }}">Consultar</a>
+      </div>
+    {% else %}
+      <p class="vacio" style="padding:14px 0">No tiene vehículos registrados.</p>
+      <a class="boton primario" style="width:100%" href="{{ url_for('consultante.vehiculo_nuevo') }}">Registrar vehículo</a>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}

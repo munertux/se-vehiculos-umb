@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "macros.html" import encabezado, estado_atencion with context %}
+{% block titulo %}Historial de consultas{% endblock %}
+{% block contenido %}
+{% call encabezado('Historial de consultas') %}
+  <a class="boton primario" href="{{ url_for('consultante.consulta_nueva') }}">Nueva consulta</a>
+{% endcall %}
+
+<section class="panel sin-relleno">
+  {% if historial %}
+  <div class="tabla-envoltura">
+  <table class="tabla">
+    <thead><tr><th class="num">N.º</th><th>Fecha</th><th>Vehículo</th><th>Área</th><th>Hipótesis principal</th><th class="num">Probabilidad</th><th>Estado</th><th>Falla real</th><th></th></tr></thead>
+    <tbody>
+    {% for h in historial %}
+      <tr>
+        <td class="num">{{ h.id_atencion }}</td>
+        <td class="fecha">{{ h.fecha|fecha }}</td>
+        <td>{{ h.vehiculo|tildes }}</td>
+        <td>{{ (h.area or '—')|tildes }}</td>
+        <td>{{ (h.hipotesis_principal or '—')|tildes }}</td>
+        <td class="num">{{ h.probabilidad|porcentaje }}</td>
+        <td>{{ estado_atencion(h.estado) }}</td>
+        <td>{% if h.falla_confirmada %}<span class="insignia verde">Confirmada</span>{% else %}<span class="texto-3">—</span>{% endif %}</td>
+        <td class="acciones-celda">
+          <div class="acciones">
+            {% if h.estado == 'en_curso' %}
+            <a class="boton chico primario" href="{{ url_for('consultante.consulta', id_atencion=h.id_atencion) }}">Continuar</a>
+            {% else %}
+            <a class="boton chico" href="{{ url_for('consultante.detalle', id_atencion=h.id_atencion) }}">Detalle</a>
+            <a class="boton chico" href="{{ url_for('consultante.reporte', id_atencion=h.id_atencion) }}" target="_blank" rel="noopener">Reporte</a>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="vacio">Todavía no hay consultas registradas.</p>
+  {% endif %}
+</section>
+{% endblock %}

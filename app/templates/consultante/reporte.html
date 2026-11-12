@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% from "macros.html" import nivel, reglas, advertencia_critica with context %}
+{% block titulo %}Reporte de diagnóstico n.º {{ d.id_atencion }}{% endblock %}
+{% block contenido %}
+<div class="barra-reporte no-imprimir">
+  <a class="boton" href="{{ url_for('consultante.detalle', id_atencion=d.id_atencion) }}">← Volver al detalle</a>
+  <button class="boton primario" type="button" onclick="window.print()">Imprimir o guardar en PDF</button>
+</div>
+
+<article class="reporte">
+  <header class="reporte-cabeza">
+    <div>
+      <h1>Reporte de diagnóstico vehicular</h1>
+      <p>{{ nombre_sistema }}</p>
+      <p>Universidad Manuela Beltrán · Sistemas Expertos</p>
+    </div>
+    <div style="text-align:right">
+      <p><strong>Consulta n.º {{ d.id_atencion }}</strong></p>
+      <p>Fecha: {{ d.fecha_inicio|fecha }}</p>
+      <p>Consultante: {{ usuario_actual.nombres }}</p>
+    </div>
+  </header>
+
+  {% if d.hipotesis|selectattr('advertencia')|list %}{{ advertencia_critica() }}{% endif %}
+
+  <h2>Datos del vehículo y de la consulta</h2>
+  <table class="tabla">
+    <tbody>
+      <tr><th style="width:24%">Placa</th><td class="mono">{{ d.vehiculo.placa if d.vehiculo else '—' }}</td>
+          <th style="width:20%">Marca y modelo</th><td>{% if d.vehiculo %}{{ d.vehiculo.marca }} {{ d.vehiculo.modelo }}{% if d.vehiculo.anio %} ({{ d.vehiculo.anio }}){% endif %}{% else %}—{% endif %}</td></tr>
+      <tr><th>Combustible</th><td>{{ (d.vehiculo.combustible_etiqueta if d.vehiculo else '—')|tildes }}</td>
+          <th>Transmisión</th><td>{{ (d.vehiculo.transmision_etiqueta if d.vehiculo else '—')|tildes }}</td></tr>
+      <tr><th>Kilometraje</th><td>{% if d.vehiculo and d.vehiculo.kilometraje is not none %}{{ d.vehiculo.kilometraje|numero }} km{% else %}—{% endif %}</td>
+          <th>Área consultada</th><td>{{ d.area|tildes }}</td></tr>
+      <tr><th>Testigos encendidos</th><td colspan="3">{% if d.testigos %}{{ d.testigos|map('tildes')|join(', ') }}{% else %}Ninguno{% endif %}</td></tr>
+      <tr><th>Códigos OBD-II</th><td colspan="3" class="mono">{% if d.codigos_obd %}{{ d.codigos_obd|join(', ') }}{% else %}Ninguno{% endif %}</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Hipótesis de falla (top 5)</h2>
+  {% if d.hipotesis %}
+  <table class="tabla">
+    <thead><tr><th class="num">#</th><th>Hipótesis</th><th class="num">Probabilidad</th><th>Nivel de atención</th><th>Reglas</th></tr></thead>
+    <tbody>
+    {% for h in d.hipotesis %}
+      <tr>
+        <td class="num">{{ h.posicion }}</td>
+        <td><strong>{{ h.nombre }}</strong>{% if h.falla_confirmada %} <span class="insignia verde">Falla real</span>{% endif %}
+          <div class="pequeno texto-2" style="margin-top:3px">{{ h.recomendacion }}</div></td>
+        <td class="num">{{ h.probabilidad|porcentaje }}</td>
+        <td>{{ nivel(h.nivel_atencion) }}</td>
+        <td>{{ reglas(h.reglas_activadas) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="texto-2">La consulta no tiene diagnóstico registrado.</p>
+  {% endif %}
+
+  {% if d.falla_confirmada %}
+  <h2>Falla real confirmada</h2>
+  <p style="margin:0">{{ d.falla_confirmada.nombre|tildes }}{% if d.falla_confirmada.observacion %} — {{ d.falla_confirmada.observacion }}{% endif %}</p>
+  {% endif %}
+
+  <h2>Respuestas del consultante</h2>
+  <table class="tabla">
+    <thead><tr><th class="num">#</th><th>Pregunta</th><th>Respuesta</th><th class="num">Certeza</th></tr></thead>
+    <tbody>
+    {% for r in d.respuestas %}
+      <tr><td class="num">{{ r.orden }}</td><td>{{ r.enunciado|tildes }}</td><td>{{ r.respuesta_etiqueta|tildes }}</td><td class="num">{{ r.certeza|decimal }}</td></tr>
+    {% else %}
+      <tr><td colspan="4" class="texto-3">Sin respuestas registradas.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <p class="reporte-firma">
+    Este reporte es una orientación preliminar generada por un sistema experto basado en reglas y no sustituye la revisión
+    de un técnico automotriz. Generado el {{ ahora|fecha }}.
+  </p>
+</article>
+{% endblock %}

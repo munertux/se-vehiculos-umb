@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf, encabezado with context %}
+{% block titulo %}Nueva consulta{% endblock %}
+{% block contenido %}
+{{ encabezado('Nueva consulta al sistema experto') }}
+
+{% if not vehiculos %}
+<div class="panel">
+  <p class="vacio">Para iniciar una consulta primero debe registrar el vehículo que presenta la falla.</p>
+  <p style="text-align:center"><a class="boton primario" href="{{ url_for('consultante.vehiculo_nuevo', volver='consulta') }}">Registrar vehículo</a></p>
+</div>
+{% else %}
+<form method="post" autocomplete="off">
+  {{ csrf() }}
+  <section class="panel">
+    <h2 class="paso"><span class="paso-num">1</span> Vehículo</h2>
+    <div class="opciones-tarjeta">
+      {% for v in vehiculos %}
+      <label class="opcion-tarjeta">
+        <input type="radio" name="id_vehiculo" value="{{ v.id_vehiculo }}" required
+               {{ 'checked' if seleccion.id_vehiculo == v.id_vehiculo or (vehiculos|length == 1) }}>
+        <span><strong class="mono">{{ v.placa }}</strong> · {{ v.marca }} {{ v.modelo }}
+          <small>{{ v.anio or '' }}{% if v.combustible_etiqueta %} · {{ v.combustible_etiqueta|tildes }}{% endif %}{% if v.kilometraje is not none %} · {{ v.kilometraje|numero }} km{% endif %}</small></span>
+      </label>
+      {% endfor %}
+    </div>
+    <p class="pequeno texto-2" style="margin:10px 0 0">¿No aparece? <a href="{{ url_for('consultante.vehiculo_nuevo', volver='consulta') }}">Registrar otro vehículo</a></p>
+  </section>
+
+  <section class="panel">
+    <h2 class="paso"><span class="paso-num">2</span> Área donde nota el problema</h2>
+    <div class="opciones-tarjeta">
+      {% for a in areas %}
+      <label class="opcion-tarjeta">
+        <input type="radio" name="id_area" value="{{ a.id_area }}" required {{ 'checked' if seleccion.id_area == a.id_area }}>
+        <span>{{ a.nombre|tildes }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="rejilla rejilla-3-1">
+    <section class="panel">
+      <h2 class="paso"><span class="paso-num">3</span> Testigos encendidos en el tablero <span class="texto-3 pequeno" style="font-weight:400">(opcional)</span></h2>
+      <div class="opciones-tarjeta compactas">
+        {% for t in testigos %}
+        <label class="opcion-tarjeta">
+          <input type="checkbox" name="testigos" value="{{ t }}" {{ 'checked' if t in seleccion.testigos }}>
+          <span>{{ t|tildes }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </section>
+    <section class="panel">
+      <h2 class="paso"><span class="paso-num">4</span> Códigos OBD-II <span class="texto-3 pequeno" style="font-weight:400">(opcional)</span></h2>
+      <div class="campo">
+        <label for="codigos_obd">Códigos leídos con el escáner</label>
+        <input type="text" id="codigos_obd" name="codigos_obd" value="{{ seleccion.codigos_obd }}"
+               placeholder="P0300, P0171" maxlength="200" style="text-transform:uppercase">
+        <p class="ayuda">Sepárelos con comas. Formato: una letra (P, C, B o U) y cuatro caracteres.</p>
+      </div>
+    </section>
+  </div>
+
+  <div class="acciones" style="justify-content:flex-end">
+    <a class="boton" href="{{ url_for('consultante.panel') }}">Cancelar</a>
+    <button type="submit" class="boton primario grande">Iniciar consulta</button>
+  </div>
+</form>
+{% endif %}
+{% endblock %}

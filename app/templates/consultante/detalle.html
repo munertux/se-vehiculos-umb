@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf, encabezado, estado_atencion, nivel, reglas, advertencia_critica, barra_probabilidad with context %}
+{% block titulo %}Consulta n.º {{ d.id_atencion }}{% endblock %}
+{% block contenido %}
+{% call encabezado('Consulta n.º ' ~ d.id_atencion, [('Historial', url_for('consultante.historial')), ('Detalle', None)]) %}
+  {% if d.estado == 'en_curso' %}
+  <a class="boton primario" href="{{ url_for('consultante.consulta', id_atencion=d.id_atencion) }}">Continuar consulta</a>
+  {% else %}
+  <a class="boton" href="{{ url_for('consultante.reporte', id_atencion=d.id_atencion) }}" target="_blank" rel="noopener">Reporte imprimible</a>
+  {% endif %}
+{% endcall %}
+
+{% if d.hipotesis|selectattr('advertencia')|list %}{{ advertencia_critica() }}{% endif %}
+
+<div class="rejilla rejilla-3-1">
+  <div>
+    <section class="panel">
+      <div class="panel-cabeza"><h2>Hipótesis de falla más probables</h2>
+        {% if d.falla_confirmada %}<span class="insignia verde">Falla real: {{ d.falla_confirmada.nombre|tildes }}</span>{% endif %}</div>
+      {% if d.hipotesis %}
+      <div class="resultados">
+        {% for h in d.hipotesis %}
+        <article class="resultado-item {{ h.nivel_clase }}">
+          <div class="resultado-cabeza">
+            <h3><span class="posicion">{{ h.posicion }}.</span>{{ h.nombre }}</h3>
+            {{ barra_probabilidad(h.probabilidad) }}
+          </div>
+          <div class="resultado-meta">
+            {{ nivel(h.nivel_atencion) }}
+            <span>Reglas activadas: {{ reglas(h.reglas_activadas) }}</span>
+            {% if h.falla_confirmada %}<span class="confirmada">✓ Falla real confirmada</span>{% endif %}
+          </div>
+          <p class="recomendacion"><strong>Recomendación:</strong> {{ h.recomendacion }}</p>
+          {% if h.falla_confirmada and h.observacion %}<p class="pequeno texto-2" style="margin:6px 0 0"><strong>Observación:</strong> {{ h.observacion }}</p>{% endif %}
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="vacio">La consulta aún no tiene diagnóstico.</p>
+      {% endif %}
+    </section>
+
+    <section class="panel sin-relleno">
+      <div class="panel-cabeza"><h2>Respuestas del consultante</h2></div>
+      {% if d.respuestas %}
+      <div class="tabla-envoltura" style="margin-top:12px">
+      <table class="tabla">
+        <thead><tr><th class="num">Orden</th><th>Pregunta</th><th>Respuesta</th><th class="num">Certeza</th></tr></thead>
+        <tbody>
+        {% for r in d.respuestas %}
+          <tr>
+            <td class="num">{{ r.orden }}</td>
+            <td>{{ r.enunciado|tildes }}{% if r.es_entrada %} <span class="insignia azul">Entrada</span>{% endif %}</td>
+            <td>{{ r.respuesta_etiqueta|tildes }}</td>
+            <td class="num">{{ r.certeza|decimal }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% else %}
+      <p class="vacio">Sin respuestas registradas.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <div>
+    <section class="panel">
+      <h2>Datos de la consulta</h2>
+      <dl class="datos">
+        <dt>Estado</dt><dd>{{ estado_atencion(d.estado) }}</dd>
+        <dt>Inicio</dt><dd>{{ d.fecha_inicio|fecha }}</dd>
+        <dt>Fin</dt><dd>{{ d.fecha_fin|fecha }}</dd>
+        <dt>Vehículo</dt><dd>{% if d.vehiculo %}<strong class="mono">{{ d.vehiculo.placa }}</strong> · {{ d.vehiculo.marca }} {{ d.vehiculo.modelo }}{% if d.vehiculo.anio %} ({{ d.vehiculo.anio }}){% endif %}{% else %}—{% endif %}</dd>
+        <dt>Área</dt><dd>{{ d.area|tildes }}</dd>
+        <dt>Testigos</dt><dd>{% if d.testigos %}{{ d.testigos|map('tildes')|join(', ') }}{% else %}Ninguno{% endif %}</dd>
+        <dt>OBD-II</dt><dd>{% if d.codigos_obd %}<span class="mono">{{ d.codigos_obd|join(', ') }}</span>{% else %}Ninguno{% endif %}</dd>
+      </dl>
+    </section>
+
+    {% if d.estado == 'finalizada' and d.hipotesis %}
+    <section class="panel">
+      <h2>{{ 'Cambiar falla real confirmada' if d.falla_confirmada else 'Confirmar falla real' }}</h2>
+      <p class="pequeno texto-2" style="margin-top:-6px">Indique cuál de las hipótesis resultó ser la causa real después de la revisión técnica.</p>
+      <form method="post" action="{{ url_for('consultante.confirmar', id_atencion=d.id_atencion) }}">
+        {{ csrf() }}
+        <div class="campo" style="margin-bottom:12px">
+          <label for="id_hipotesis" class="requerido">Hipótesis</label>
+          <select id="id_hipotesis" name="id_hipotesis" required>
+            <option value="">Seleccione…</option>
+            {% for h in d.hipotesis %}
+            <option value="{{ h.id_hipotesis }}" {{ 'selected' if h.falla_confirmada }}>{{ h.posicion }}. {{ h.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="campo">
+          <label for="observacion">Observación del técnico</label>
+          <textarea id="observacion" name="observacion" maxlength="1000" placeholder="Ej.: se reemplazó la bomba de agua"></textarea>
+        </div>
+        <div class="form-pie"><button type="submit" class="boton primario">Confirmar falla real</button></div>
+      </form>
+    </section>
+    {% endif %}
+
+    {% if d.reglas %}
+    <section class="panel sin-relleno">
+      <div class="panel-cabeza"><h2>Reglas activadas</h2></div>
+      <div class="tabla-envoltura" style="margin-top:12px">
+      <table class="tabla">
+        <thead><tr><th>Regla</th><th>Hipótesis</th><th class="num">Versión</th></tr></thead>
+        <tbody>
+        {% for r in d.reglas %}
+          <tr><td><span class="codigo-regla">{{ r.codigo }}</span></td><td>{{ r.hipotesis|tildes }}</td><td class="num">{{ r.version or '—' }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf, encabezado with context %}
+{% block titulo %}Respaldos{% endblock %}
+{% block contenido %}
+{{ encabezado('Respaldos de la base de datos') }}
+
+<div class="rejilla rejilla-2">
+  <section class="panel">
+    <h2>Descargar respaldo</h2>
+    <p class="texto-2">Genera un script SQL con sentencias INSERT. Las contraseñas se exportan solo como hash; nunca en texto claro.</p>
+    <form method="post" action="{{ url_for('administracion.descargar_respaldo') }}">
+      {{ csrf() }}
+      <div class="opciones-tarjeta" style="grid-template-columns:1fr; margin:14px 0">
+        <label class="opcion-tarjeta">
+          <input type="radio" name="alcance" value="completo" checked>
+          <span><strong>Respaldo completo</strong>
+            <small>Base de conocimiento, usuarios, consultantes, vehículos, atenciones y bitácora.</small></span>
+        </label>
+        <label class="opcion-tarjeta">
+          <input type="radio" name="alcance" value="conocimiento">
+          <span><strong>Solo base de conocimiento</strong>
+            <small>Áreas, preguntas, hipótesis, reglas y parámetros de inferencia.</small></span>
+        </label>
+      </div>
+      <button type="submit" class="boton primario">Descargar archivo .sql</button>
+    </form>
+  </section>
+
+  {% if puede_restaurar %}
+  <section class="panel">
+    <h2>Restaurar base de conocimiento</h2>
+    <p class="texto-2">Aplica únicamente los INSERT de las tablas de conocimiento de un respaldo generado por este sistema. Los registros existentes se actualizan; no se borra información.</p>
+    <form method="post" action="{{ url_for('administracion.restaurar_respaldo') }}" enctype="multipart/form-data">
+      {{ csrf() }}
+      <div class="campo" style="margin:14px 0">
+        <label for="archivo" class="requerido">Archivo de respaldo (.sql)</label>
+        <input type="file" id="archivo" name="archivo" accept=".sql" required class="control">
+      </div>
+      <label class="campo-casilla" style="padding-top:0">
+        <input type="checkbox" name="confirmar" value="1" required> Entiendo que se sobrescribirán las reglas y preguntas con los valores del archivo.
+      </label>
+      <div class="form-pie"><button type="submit" class="boton peligro">Restaurar conocimiento</button></div>
+    </form>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<title>{% block titulo %}{% endblock %} · Sistema experto de diagnóstico vehicular</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% block cabeza %}{% endblock %}
+</head>
+<body class="{% block clase_body %}{% endblock %}">
+{% set ep = request.endpoint or '' %}
+{% set entidad_actual = (request.view_args or {}).get('entidad') %}
+{% macro item(endpoint, texto, activo=None) -%}
+  {%- set esta_activo = activo if activo is not none else (request.endpoint == endpoint) -%}
+  <a href="{{ url_for(endpoint, **kwargs) }}" class="{{ 'activo' if esta_activo }}"{% if esta_activo %} aria-current="page"{% endif %}>{{ texto }}</a>
+{%- endmacro %}
+
+<header class="topbar">
+  <div class="topbar-interior">
+    <a class="brand" href="{{ url_for('inicio') }}">
+      <span class="brand-marca" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M4 13l2-5a2 2 0 0 1 1.9-1.4h8.2A2 2 0 0 1 18 8l2 5v4H4z"/><circle cx="7.5" cy="17" r="1.6"/><circle cx="16.5" cy="17" r="1.6"/></svg>
+      </span>
+      <span class="brand-texto">
+        <strong>{{ nombre_sistema }}</strong>
+        <span>Universidad Manuela Beltrán · Sistemas Expertos</span>
+      </span>
+    </a>
+    {% if usuario_actual %}
+    <div class="usuario">
+      <div class="usuario-datos">
+        <strong>{{ usuario_actual.nombres or usuario_actual.nombre_usuario }}</strong>
+        <span>{{ usuario_actual.nombre_rol }} · {{ usuario_actual.nombre_usuario }}</span>
+      </div>
+      <div class="usuario-acciones">
+        <a href="{{ url_for('autenticacion.cambiar_clave') }}" title="Cambiar contraseña">Contraseña</a>
+        <form method="post" action="{{ url_for('autenticacion.logout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit">Cerrar sesión</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</header>
+
+{% if usuario_actual %}
+<nav class="menu" aria-label="Menú principal">
+  <div class="menu-interior">
+  {% if usuario_actual.rol == 'consultante' %}
+    {{ item('consultante.panel', 'Panel') }}
+    {{ item('consultante.vehiculos', 'Mis vehículos', ep.startswith('consultante.vehiculo')) }}
+    {{ item('consultante.consulta_nueva', 'Nueva consulta', ep in ('consultante.consulta_nueva', 'consultante.consulta')) }}
+    {{ item('consultante.historial', 'Historial', ep in ('consultante.historial', 'consultante.detalle', 'consultante.reporte')) }}
+  {% elif usuario_actual.rol == 'ingeniero' %}
+    {{ item('conocimiento.resumen', 'Resumen y validación') }}
+    {{ item('conocimiento.lista', 'Áreas', entidad_actual == 'areas', entidad='areas') }}
+    {{ item('conocimiento.lista', 'Preguntas', entidad_actual == 'preguntas', entidad='preguntas') }}
+    {{ item('conocimiento.lista', 'Hipótesis', entidad_actual == 'hipotesis', entidad='hipotesis') }}
+    {{ item('conocimiento.lista', 'Reglas', entidad_actual == 'reglas', entidad='reglas') }}
+    {{ item('conocimiento.granulos_inicio', 'Conocimiento por hipótesis', ep in ('conocimiento.granulos', 'conocimiento.granulos_inicio')) }}
+  {% elif usuario_actual.rol == 'administrador' %}
+    {{ item('administracion.usuarios', 'Usuarios') }}
+    {{ item('administracion.auditoria', 'Auditoría') }}
+    {{ item('administracion.respaldos', 'Respaldos') }}
+  {% endif %}
+  </div>
+</nav>
+{% endif %}
+
+<main class="contenido {% block clase_main %}{% endblock %}">
+  {% with mensajes = get_flashed_messages(with_categories=true) %}
+  {% if mensajes %}
+  <div class="avisos" role="status">
+    {% for categoria, mensaje in mensajes %}
+    <div class="aviso {{ categoria if categoria in ('exito', 'error', 'info') else 'info' }}">{{ mensaje }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% endwith %}
+  {% block contenido %}{% endblock %}
+</main>
+
+<footer class="pie">
+  Prototipo académico — orientación preliminar; no sustituye la revisión de un técnico automotriz.
+</footer>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

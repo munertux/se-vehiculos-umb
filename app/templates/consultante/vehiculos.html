@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf, encabezado with context %}
+{% block titulo %}Mis vehículos{% endblock %}
+{% block contenido %}
+{% call encabezado('Mis vehículos') %}
+  {% if incluir_inactivos %}
+  <a class="boton" href="{{ url_for('consultante.vehiculos') }}">Ocultar retirados</a>
+  {% else %}
+  <a class="boton" href="{{ url_for('consultante.vehiculos', inactivos=1) }}">Mostrar retirados</a>
+  {% endif %}
+  <a class="boton primario" href="{{ url_for('consultante.vehiculo_nuevo') }}">Registrar vehículo</a>
+{% endcall %}
+
+<section class="panel sin-relleno">
+  {% if vehiculos %}
+  <div class="tabla-envoltura">
+  <table class="tabla">
+    <thead><tr><th>Placa</th><th>Marca</th><th>Modelo</th><th class="num">Año</th><th>Combustible</th><th>Transmisión</th><th class="num">Kilometraje</th><th>Estado</th><th></th></tr></thead>
+    <tbody>
+    {% for v in vehiculos %}
+      {% set activo = v.activo %}
+      <tr class="{{ '' if activo else 'inactiva' }}">
+        <td class="mono"><strong>{{ v.placa }}</strong></td>
+        <td>{{ v.marca }}</td>
+        <td>{{ v.modelo }}</td>
+        <td class="num">{{ v.anio or '—' }}</td>
+        <td>{{ (v.combustible_etiqueta or v.combustible or '—')|tildes }}</td>
+        <td>{{ (v.transmision_etiqueta or v.transmision or '—')|tildes }}</td>
+        <td class="num">{% if v.kilometraje is not none %}{{ v.kilometraje|numero }} km{% else %}—{% endif %}</td>
+        <td>{% if activo %}<span class="insignia verde">Activo</span>{% else %}<span class="insignia gris">Retirado</span>{% endif %}</td>
+        <td class="acciones-celda">
+          {% if activo %}
+          <div class="acciones">
+            <a class="boton chico" href="{{ url_for('consultante.consulta_nueva', vehiculo=v.id_vehiculo) }}">Consultar</a>
+            <a class="boton chico" href="{{ url_for('consultante.vehiculo_editar', id_vehiculo=v.id_vehiculo) }}">Editar</a>
+            <form class="en-linea" method="post" action="{{ url_for('consultante.vehiculo_estado', id_vehiculo=v.id_vehiculo, accion='desactivar') }}"
+                  onsubmit="return confirm('¿Retirar el vehículo {{ v.placa }}? Su historial de consultas se conserva.');">
+              {{ csrf() }}<button class="boton chico peligro" type="submit">Retirar</button>
+            </form>
+          </div>
+          {% else %}
+          <form class="en-linea" method="post" action="{{ url_for('consultante.vehiculo_estado', id_vehiculo=v.id_vehiculo, accion='reactivar') }}">
+            {{ csrf() }}<button class="boton chico" type="submit">Reactivar</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="vacio">No hay vehículos registrados. Registre uno para poder consultar al sistema experto.</p>
+  {% endif %}
+</section>
+{% endblock %}

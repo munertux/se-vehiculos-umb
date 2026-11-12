@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% from "macros.html" import encabezado, nivel with context %}
+{% block titulo %}Conocimiento por hipótesis{% endblock %}
+{% block contenido %}
+{% set h = datos.hipotesis %}
+{% call encabezado('Conocimiento por hipótesis', [('Conocimiento', url_for('conocimiento.resumen')), ('Hipótesis', url_for('conocimiento.lista', entidad='hipotesis')), ('Gránulos', None)]) %}
+  <form class="barra-filtros" onsubmit="return false;">
+    <label for="sel-hipotesis">Hipótesis</label>
+    <select id="sel-hipotesis" class="control" style="min-width:320px"
+            data-url="{{ url_for('conocimiento.granulos', id_hipotesis=0) }}"
+            onchange="window.location = this.dataset.url.replace('/0/', '/' + this.value + '/')">
+      {% for x in hipotesis %}
+      <option value="{{ x.id_hipotesis }}" {{ 'selected' if x.id_hipotesis == id_hipotesis }}>H{{ x.id_hipotesis }} · {{ x.nombre|tildes }}</option>
+      {% endfor %}
+    </select>
+  </form>
+{% endcall %}
+
+<section class="panel">
+  <div class="panel-cabeza">
+    <h2>H{{ h.id_hipotesis }} · {{ h.nombre|tildes }}</h2>
+    <div class="acciones">
+      {% if datos.area %}<span class="insignia azul">Área: {{ datos.area.nombre|tildes }}</span>{% endif %}
+      <a class="boton chico" href="{{ url_for('conocimiento.lista', entidad='hipotesis', editar=h.id_hipotesis) }}">Editar hipótesis</a>
+    </div>
+  </div>
+  {% if h.descripcion %}<p class="texto-2" style="margin:0">{{ h.descripcion|tildes }}</p>{% endif %}
+</section>
+
+{% set directos = datos.granulos|selectattr('tipo', 'equalto', 'directo')|list %}
+{% set ramas = datos.granulos|selectattr('tipo', 'equalto', 'rama')|list %}
+<div class="kpis">
+  <div class="kpi"><div class="kpi-etiqueta">Gránulos directos (reglas)</div><div class="kpi-valor">{{ directos|length }}</div>
+    <div class="kpi-pie">{% set n = directos|selectattr('activa')|list|length %}{{ n }} activo{{ 's' if n != 1 }}</div></div>
+  <div class="kpi"><div class="kpi-etiqueta">Gránulos de rama (pregunta de entrada)</div><div class="kpi-valor">{{ ramas|length }}</div></div>
+  <div class="kpi"><div class="kpi-etiqueta">Peso total de evidencia</div>
+    <div class="kpi-valor">{{ datos.granulos|selectattr('activa')|sum(attribute='peso')|decimal }}</div></div>
+</div>
+
+<section class="panel sin-relleno">
+  <div class="panel-cabeza"><h2>Gránulos de conocimiento</h2></div>
+  {% if datos.granulos %}
+  <div class="tabla-envoltura" style="margin-top:12px">
+  <table class="tabla">
+    <thead><tr><th>Tipo</th><th>Regla</th><th>Pregunta (evidencia)</th><th class="num">Peso</th><th>Nivel de atención</th><th>Recomendación</th><th>Estado</th></tr></thead>
+    <tbody>
+    {% for g in datos.granulos %}
+      <tr class="{{ 'inactiva' if not g.activa }}">
+        <td>{% if g.tipo == 'rama' %}<span class="insignia azul">Rama</span>{% else %}<span class="insignia gris">Directo</span>{% endif %}</td>
+        <td>{% if g.codigo_regla %}<span class="codigo-regla">{{ g.codigo_regla }}</span>{% else %}<span class="texto-3">—</span>{% endif %}</td>
+        <td class="recorte"><span class="texto-3">P{{ g.id_pregunta }}</span> {{ g.enunciado|tildes }}</td>
+        <td class="num">{{ g.peso|decimal }}</td>
+        <td>{{ nivel(g.nivel_atencion) }}</td>
+        <td class="recorte pequeno">{{ (g.recomendacion or '—')|tildes }}</td>
+        <td>{% if g.activa %}<span class="insignia verde">Activo</span>{% else %}<span class="insignia gris">Inactivo</span>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="vacio">Esta hipótesis aún no tiene reglas asociadas.</p>
+  {% endif %}
+</section>
+{% endblock %}

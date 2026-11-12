@@ -63,6 +63,8 @@ class Regla:
     gravedad: int
     recomendacion: str
     peso: float = 1.0
+    version: int = 1
+    activa: bool = True
 
 
 @dataclass

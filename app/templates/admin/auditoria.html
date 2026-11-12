@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "macros.html" import encabezado with context %}
+{% block titulo %}Auditoría{% endblock %}
+{% block contenido %}
+{% call encabezado('Auditoría de cambios') %}
+  <form class="barra-filtros" method="get">
+    <label for="entidad">Entidad</label>
+    <select id="entidad" name="entidad" class="control" style="min-width:170px" onchange="this.form.submit()">
+      <option value="">Todas</option>
+      {% for e in entidades %}<option value="{{ e }}" {{ 'selected' if entidad == e }}>{{ e|capitalize|tildes }}</option>{% endfor %}
+    </select>
+    <label for="limite">Registros</label>
+    <select id="limite" name="limite" class="control" style="min-width:90px" onchange="this.form.submit()">
+      {% for n in (50, 200, 500, 1000) %}<option value="{{ n }}" {{ 'selected' if limite == n }}>{{ n }}</option>{% endfor %}
+    </select>
+    <noscript><button class="boton" type="submit">Filtrar</button></noscript>
+  </form>
+{% endcall %}
+
+<section class="panel sin-relleno">
+  {% if registros %}
+  <div class="tabla-envoltura">
+  <table class="tabla">
+    <thead><tr><th>Fecha</th><th>Responsable</th><th>Entidad</th><th class="num">Registro</th><th>Acción</th><th>Detalle</th></tr></thead>
+    <tbody>
+    {% set clases = {'crear': 'verde', 'modificar': 'azul', 'activar': 'verde', 'desactivar': 'rojo'} %}
+    {% for r in registros %}
+      <tr>
+        <td style="white-space:nowrap">{{ r.fecha|fecha }}</td>
+        <td>{% if r.empleado %}{{ r.empleado }}<div class="pequeno texto-3 mono">{{ r.nombre_usuario }}</div>{% else %}<span class="texto-3">Sistema</span>{% endif %}</td>
+        <td>{{ (r.entidad or '—')|capitalize|tildes }}{% if r.codigo_regla %} <span class="codigo-regla">{{ r.codigo_regla }}</span>{% endif %}</td>
+        <td class="num">{{ r.id_registro if r.id_registro is not none else '—' }}</td>
+        <td><span class="insignia {{ clases.get(r.accion, 'gris') }}">{{ (r.accion or '')|capitalize }}</span></td>
+        <td class="recorte pequeno">{{ (r.detalle or '—')|tildes }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="vacio">No hay registros en la bitácora{% if entidad %} para la entidad seleccionada{% endif %}.</p>
+  {% endif %}
+</section>
+{% endblock %}

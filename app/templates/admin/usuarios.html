@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf, encabezado with context %}
+{% block titulo %}Usuarios{% endblock %}
+{% block contenido %}
+{% call encabezado('Usuarios del sistema') %}
+  {% if not abierto %}<a class="boton primario" href="{{ url_for('administracion.usuarios', nuevo=1) }}">Nuevo usuario</a>{% endif %}
+{% endcall %}
+
+<div class="kpis">
+  <div class="kpi"><div class="kpi-etiqueta">Usuarios</div><div class="kpi-valor">{{ usuarios|length }}</div></div>
+  {% set plurales = {'consultante': 'Consultantes', 'ingeniero': 'Ingenieros del conocimiento', 'administrador': 'Administradores'} %}
+  {% for clave, texto in roles %}
+  <div class="kpi"><div class="kpi-etiqueta">{{ plurales[clave] }}</div><div class="kpi-valor">{{ usuarios|selectattr('rol', 'equalto', clave)|list|length }}</div></div>
+  {% endfor %}
+  <div class="kpi"><div class="kpi-etiqueta">Bloqueados</div><div class="kpi-valor">{{ usuarios|selectattr('estado', 'equalto', 'bloqueado')|list|length }}</div></div>
+</div>
+
+{% if abierto %}
+<section class="panel" id="nuevo-usuario">
+  <h2>Crear usuario</h2>
+  <form method="post" action="{{ url_for('administracion.crear_usuario') }}" autocomplete="off">
+    {{ csrf() }}
+    <div class="form-rejilla">
+      <div class="campo"><label for="nombre_usuario" class="requerido">Usuario</label>
+        <input type="text" id="nombre_usuario" name="nombre_usuario" value="{{ valores.nombre_usuario or '' }}" required maxlength="40" pattern="[A-Za-z0-9._\-]{3,40}">
+        <p class="ayuda">De 3 a 40 caracteres: letras, números, punto o guion.</p></div>
+      <div class="campo"><label for="nombres" class="requerido">Nombres y apellidos</label>
+        <input type="text" id="nombres" name="nombres" value="{{ valores.nombres or '' }}" required maxlength="120"></div>
+      <div class="campo"><label for="rol" class="requerido">Rol</label>
+        <select id="rol" name="rol" required>
+          {% for clave, texto in roles %}<option value="{{ clave }}" {{ 'selected' if valores.rol == clave }}>{{ texto }}</option>{% endfor %}
+        </select></div>
+      <div class="campo"><label for="correo">Correo</label>
+        <input type="email" id="correo" name="correo" value="{{ valores.correo or '' }}" maxlength="120">
+        <p class="ayuda">Solo para consultantes.</p></div>
+      <div class="campo"><label for="telefono">Teléfono</label>
+        <input type="tel" id="telefono" name="telefono" value="{{ valores.telefono or '' }}" maxlength="30"></div>
+      <div class="campo"><label for="cargo">Cargo</label>
+        <input type="text" id="cargo" name="cargo" value="{{ valores.cargo or '' }}" maxlength="80">
+        <p class="ayuda">Para ingenieros y administradores.</p></div>
+      <div class="campo"><label for="clave" class="requerido">Contraseña inicial</label>
+        <input type="password" id="clave" name="clave" required minlength="8" autocomplete="new-password">
+        <p class="ayuda">Mínimo 8 caracteres con letras y números.</p></div>
+      <div class="campo"><label for="clave_confirmacion" class="requerido">Confirmar contraseña</label>
+        <input type="password" id="clave_confirmacion" name="clave_confirmacion" required minlength="8" autocomplete="new-password"></div>
+    </div>
+    <div class="form-pie">
+      <a class="boton" href="{{ url_for('administracion.usuarios') }}">Cancelar</a>
+      <button type="submit" class="boton primario">Crear usuario</button>
+    </div>
+  </form>
+</section>
+{% endif %}
+
+<section class="panel sin-relleno">
+  <div class="tabla-envoltura">
+  <table class="tabla">
+    <thead><tr><th>Usuario</th><th>Nombres</th><th>Rol</th><th>Estado</th><th>Último acceso</th><th class="num">Intentos</th><th></th></tr></thead>
+    <tbody>
+    {% for u in usuarios %}
+      {% set propio = u.id_usuario == session.get('id_usuario') %}
+      <tr class="{{ 'inactiva' if u.estado == 'inactivo' }}">
+        <td class="mono"><strong>{{ u.nombre_usuario }}</strong>{% if propio %} <span class="insignia azul">Usted</span>{% endif %}</td>
+        <td>{{ u.nombres or '—' }}{% if u.correo %}<div class="pequeno texto-3">{{ u.correo }}</div>{% elif u.cargo %}<div class="pequeno texto-3">{{ u.cargo }}</div>{% endif %}</td>
+        <td>
+          {% if propio %}{{ dict(roles)[u.rol] }}{% else %}
+          <form class="en-linea" method="post" action="{{ url_for('administracion.accion_usuario', id_usuario=u.id_usuario, accion='rol') }}">
+            {{ csrf() }}
+            <select name="rol" class="control" style="width:auto; padding:4px 8px; font-size:.82rem" onchange="this.form.submit()" aria-label="Rol de {{ u.nombre_usuario }}">
+              {% for clave, texto in roles %}<option value="{{ clave }}" {{ 'selected' if u.rol == clave }}>{{ texto }}</option>{% endfor %}
+            </select>
+            <noscript><button class="boton chico" type="submit">Cambiar</button></noscript>
+          </form>
+          {% endif %}
+        </td>
+        <td>
+          {% if u.estado == 'activo' %}<span class="insignia verde">Activo</span>
+          {% elif u.estado == 'bloqueado' %}<span class="insignia rojo">Bloqueado</span>
+            {% if u.bloqueado_hasta %}<div class="pequeno texto-3">{% if u.bloqueo_vigente %}hasta {{ u.bloqueado_hasta|fecha }}{% else %}bloqueo temporal vencido{% endif %}</div>{% endif %}
+          {% else %}<span class="insignia gris">Inactivo</span>{% endif %}
+        </td>
+        <td>{{ u.ultimo_acceso|fecha }}</td>
+        <td class="num">{{ u.intentos_fallidos or 0 }}</td>
+        <td class="acciones-celda">
+          <div class="acciones">
+          {% if not propio %}
+            {% if u.estado == 'bloqueado' %}
+              {% set accion, texto, clase = 'desbloquear', 'Desbloquear', 'exito' %}
+            {% else %}
+              {% set accion, texto, clase = 'bloquear', 'Bloquear', 'peligro' %}
+            {% endif %}
+            <form class="en-linea" method="post" action="{{ url_for('administracion.accion_usuario', id_usuario=u.id_usuario, accion=accion) }}">
+              {{ csrf() }}<button type="submit" class="boton chico {{ clase }}">{{ texto }}</button></form>
+            {% if u.estado == 'inactivo' %}
+            <form class="en-linea" method="post" action="{{ url_for('administracion.accion_usuario', id_usuario=u.id_usuario, accion='activar') }}">
+              {{ csrf() }}<button type="submit" class="boton chico exito">Activar</button></form>
+            {% else %}
+            <form class="en-linea" method="post" action="{{ url_for('administracion.accion_usuario', id_usuario=u.id_usuario, accion='inactivar') }}"
+                  onsubmit="return confirm('¿Inactivar al usuario {{ u.nombre_usuario }}? No podrá ingresar al sistema.');">
+              {{ csrf() }}<button type="submit" class="boton chico">Inactivar</button></form>
+            {% endif %}
+          {% endif %}
+            <button type="button" class="boton chico" onclick="restablecer({{ u.id_usuario }}, '{{ u.nombre_usuario }}')">Contraseña</button>
+          </div>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<dialog id="dialogo-clave" style="border:1px solid var(--borde); border-radius:12px; padding:22px; max-width:400px; width:100%">
+  <form method="post" id="form-clave" autocomplete="off">
+    {{ csrf() }}
+    <h2 class="panel-titulo">Restablecer contraseña de <span id="clave-usuario" class="mono"></span></h2>
+    <div class="campo" style="margin-bottom:12px"><label for="clave-nueva" class="requerido">Contraseña nueva</label>
+      <input type="password" id="clave-nueva" name="clave" required minlength="8" autocomplete="new-password"></div>
+    <div class="campo"><label for="clave-conf" class="requerido">Confirmar contraseña</label>
+      <input type="password" id="clave-conf" name="clave_confirmacion" required minlength="8" autocomplete="new-password"></div>
+    <div class="form-pie">
+      <button type="button" class="boton" onclick="document.getElementById('dialogo-clave').close()">Cancelar</button>
+      <button type="submit" class="boton primario">Restablecer</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}
+{% block scripts %}
+<script>
+  function restablecer(id, usuario) {
+    const dlg = document.getElementById("dialogo-clave");
+    document.getElementById("form-clave").action = "{{ url_for('administracion.accion_usuario', id_usuario=0, accion='clave') }}".replace("/0/", "/" + id + "/");
+    document.getElementById("clave-usuario").textContent = usuario;
+    dlg.showModal();
+  }
+</script>
+{% endblock %}

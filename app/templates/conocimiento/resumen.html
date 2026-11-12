@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "macros.html" import encabezado with context %}
+{% block titulo %}Base de conocimiento{% endblock %}
+{% block contenido %}
+{{ encabezado('Resumen y validación de la base de conocimiento') }}
+
+<div class="kpis">
+  <div class="kpi"><div class="kpi-etiqueta">Áreas</div><div class="kpi-valor">{{ conteos.areas or 0 }}</div></div>
+  <div class="kpi"><div class="kpi-etiqueta">Preguntas</div><div class="kpi-valor">{{ conteos.preguntas or 0 }}</div>
+    <div class="kpi-pie">{{ conteos.preguntas_activas or 0 }} activas</div></div>
+  <div class="kpi"><div class="kpi-etiqueta">Hipótesis</div><div class="kpi-valor">{{ conteos.hipotesis or 0 }}</div></div>
+  <div class="kpi"><div class="kpi-etiqueta">Reglas</div><div class="kpi-valor">{{ conteos.reglas or 0 }}</div>
+    <div class="kpi-pie">{{ conteos.reglas_activas or 0 }} activas</div></div>
+  <div class="kpi"><div class="kpi-etiqueta">Consultas atendidas</div><div class="kpi-valor">{{ conteos.atenciones or 0 }}</div></div>
+</div>
+
+<div class="rejilla rejilla-2">
+  <section class="panel">
+    <div class="panel-cabeza">
+      <h2>Validación de consistencia</h2>
+      {% if hallazgos %}<span class="insignia ambar">{{ hallazgos|length }} hallazgo{{ 's' if hallazgos|length != 1 }}</span>
+      {% else %}<span class="insignia verde">Sin problemas</span>{% endif %}
+    </div>
+    {% if hallazgos %}
+    <div class="tabla-envoltura">
+    <table class="tabla">
+      <thead><tr><th>Tipo</th><th>Descripción</th><th></th></tr></thead>
+      <tbody>
+      {% set destinos = {'regla': 'reglas', 'hipotesis': 'hipotesis', 'area': 'areas', 'pregunta': 'preguntas'} %}
+      {% for h in hallazgos %}
+        <tr>
+          <td><span class="insignia gris">{{ h.tipo|replace('_', ' ')|capitalize|tildes }}</span></td>
+          <td>{{ h.mensaje|tildes }}</td>
+          <td class="acciones-celda">{% if h.id and h.entidad in destinos %}
+            <a class="boton chico" href="{{ url_for('conocimiento.lista', entidad=destinos[h.entidad], editar=h.id) }}">Revisar</a>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <p class="texto-2" style="margin:0">Se verificaron reglas sin pregunta activa, reglas sobre preguntas de entrada, hipótesis sin reglas, reglas duplicadas pregunta–hipótesis, áreas sin pregunta de entrada y reglas con un área distinta a la de su pregunta. No se encontraron problemas.</p>
+    {% endif %}
+  </section>
+
+  <section class="panel sin-relleno">
+    <div class="panel-cabeza"><h2>Conocimiento por área</h2>
+      <a class="boton chico" href="{{ url_for('conocimiento.lista', entidad='areas') }}">Gestionar áreas</a></div>
+    <div class="tabla-envoltura" style="margin-top:12px">
+    <table class="tabla">
+      <thead><tr><th>Área</th><th class="num">Preguntas</th><th class="num">Reglas</th><th>Entrada</th></tr></thead>
+      <tbody>
+      {% for a in areas %}
+        <tr>
+          <td><a href="{{ url_for('conocimiento.lista', entidad='reglas', area=a.id_area) }}">{{ a.nombre|tildes }}</a></td>
+          <td class="num">{{ a.preguntas_activas }} / {{ a.preguntas }}</td>
+          <td class="num">{{ a.reglas_activas }} / {{ a.reglas }}</td>
+          <td>{% if a.tiene_entrada %}<span class="insignia verde">Sí</span>{% else %}<span class="insignia rojo">Falta</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

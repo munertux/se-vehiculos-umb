@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf, encabezado with context %}
+{% block titulo %}{{ 'Editar vehículo' if editando else 'Registrar vehículo' }}{% endblock %}
+{% block clase_main %}estrecho{% endblock %}
+{% block contenido %}
+{{ encabezado('Editar vehículo ' ~ (vehiculo.placa or '') if editando else 'Registrar vehículo',
+              [('Mis vehículos', url_for('consultante.vehiculos')), ('Editar' if editando else 'Nuevo', None)]) }}
+
+<form class="panel" method="post" autocomplete="off">
+  {{ csrf() }}
+  <div class="form-rejilla">
+    <div class="campo">
+      <label for="placa" class="requerido">Placa</label>
+      <input type="text" id="placa" name="placa" value="{{ vehiculo.placa or '' }}" required maxlength="8"
+             placeholder="ABC123" style="text-transform:uppercase">
+      <p class="ayuda">Sin espacios ni guiones, por ejemplo ABC123.</p>
+    </div>
+    <div class="campo">
+      <label for="marca" class="requerido">Marca</label>
+      <input type="text" id="marca" name="marca" value="{{ vehiculo.marca or '' }}" required maxlength="40" placeholder="Chevrolet">
+    </div>
+    <div class="campo">
+      <label for="modelo" class="requerido">Modelo</label>
+      <input type="text" id="modelo" name="modelo" value="{{ vehiculo.modelo or '' }}" required maxlength="60" placeholder="Onix">
+    </div>
+    <div class="campo">
+      <label for="combustible" class="requerido">Combustible</label>
+      <select id="combustible" name="combustible" required>
+        <option value="">Seleccione…</option>
+        {% for op in opciones.combustible %}
+        <option value="{{ op.valor }}" {{ 'selected' if vehiculo.combustible == op.valor }}>{{ op.etiqueta|tildes }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="campo">
+      <label for="transmision" class="requerido">Transmisión</label>
+      <select id="transmision" name="transmision" required>
+        <option value="">Seleccione…</option>
+        {% for op in opciones.transmision %}
+        <option value="{{ op.valor }}" {{ 'selected' if vehiculo.transmision == op.valor }}>{{ op.etiqueta|tildes }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="campo">
+      <label for="anio">Año</label>
+      <input type="number" id="anio" name="anio" value="{{ vehiculo.anio or '' }}" min="1950" max="2100" placeholder="2019">
+    </div>
+    <div class="campo">
+      <label for="kilometraje">Kilometraje</label>
+      <input type="number" id="kilometraje" name="kilometraje" min="0" step="1" placeholder="45000"
+             value="{{ vehiculo.kilometraje if vehiculo.kilometraje not in (none, '') else '' }}">
+      <p class="ayuda">Lectura actual del odómetro, en kilómetros.</p>
+    </div>
+  </div>
+  <div class="form-pie">
+    <a class="boton" href="{{ url_for('consultante.vehiculos') }}">Cancelar</a>
+    <button type="submit" class="boton primario">{{ 'Guardar cambios' if editando else 'Registrar vehículo' }}</button>
+  </div>
+</form>
+{% endblock %}

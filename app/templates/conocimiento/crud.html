@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf, encabezado, nivel, estado_activo with context %}
+{% block titulo %}{{ spec.titulo }}{% endblock %}
+{% block contenido %}
+{% set ruta_args = {'area': id_area} if id_area else {} %}
+{% call encabezado(spec.titulo ~ ' de la base de conocimiento', [('Conocimiento', url_for('conocimiento.resumen')), (spec.titulo, None)]) %}
+  {% if spec.filtro_area %}
+  <form class="barra-filtros" method="get" action="{{ url_for('conocimiento.lista', entidad=entidad) }}">
+    <label for="filtro-area">Área</label>
+    <select id="filtro-area" name="area" class="control" onchange="this.form.submit()">
+      <option value="">Todas las áreas</option>
+      {% for _g, opciones in catalogos.areas %}{% for valor, texto in opciones %}
+      <option value="{{ valor }}" {{ 'selected' if id_area == valor }}>{{ texto }}</option>
+      {% endfor %}{% endfor %}
+    </select>
+    <noscript><button class="boton" type="submit">Filtrar</button></noscript>
+  </form>
+  {% endif %}
+  {% if not abierto %}
+  <a class="boton primario" href="{{ url_for('conocimiento.lista', entidad=entidad, nuevo=1, **ruta_args) }}">Nueva {{ spec.singular }}</a>
+  {% endif %}
+{% endcall %}
+
+{% if abierto %}
+<section class="panel">
+  <div class="panel-cabeza">
+    <h2>{% if editar_id %}Editar {{ spec.singular }} {% if entidad == 'reglas' %}{{ valores.codigo }}{% else %}#{{ editar_id }}{% endif %}{% else %}Nueva {{ spec.singular }}{% endif %}</h2>
+    {% if editar_id and entidad == 'reglas' %}<span class="insignia azul">Versión actual {{ valores.version or 1 }} → al guardar pasa a {{ (valores.version or 1)|int + 1 }}</span>{% endif %}
+  </div>
+  <form method="post" autocomplete="off"
+        action="{{ url_for('conocimiento.actualizar', entidad=entidad, id_registro=editar_id, **ruta_args) if editar_id else url_for('conocimiento.crear', entidad=entidad, **ruta_args) }}">
+    {{ csrf() }}
+    <div class="form-rejilla">
+      {% for c in spec.campos %}
+      {% set valor = valores.get(c.nombre) %}
+      <div class="campo {{ 'ancho' if c.ancho }}">
+        {% if c.tipo == 'casilla' %}
+          <label class="campo-casilla" style="padding-top:0; font-weight:400">
+            <input type="checkbox" name="{{ c.nombre }}" value="1" {{ 'checked' if valor in (true, '1', 'on', 'true') }}> {{ c.etiqueta }}
+          </label>
+        {% else %}
+          <label for="campo-{{ c.nombre }}" class="{{ 'requerido' if c.requerido }}">{{ c.etiqueta }}</label>
+          {% if c.tipo == 'texto' %}
+            <input type="text" id="campo-{{ c.nombre }}" name="{{ c.nombre }}" value="{{ valor if valor is not none else '' }}"
+                   {{ 'required' if c.requerido }} {% if c.max %}maxlength="{{ c.max }}"{% endif %}>
+          {% elif c.tipo == 'numero' %}
+            <input type="number" id="campo-{{ c.nombre }}" name="{{ c.nombre }}" value="{{ valor if valor is not none else '' }}"
+                   step="{{ c.paso or 'any' }}" {% if c.min %}min="{{ c.min }}"{% endif %} {% if c.max %}max="{{ c.max }}"{% endif %} {{ 'required' if c.requerido }}>
+          {% elif c.tipo == 'area_texto' %}
+            <textarea id="campo-{{ c.nombre }}" name="{{ c.nombre }}" rows="2" {{ 'required' if c.requerido }}>{{ valor if valor is not none else '' }}</textarea>
+          {% elif c.tipo == 'seleccion' %}
+            <select id="campo-{{ c.nombre }}" name="{{ c.nombre }}" {{ 'required' if c.requerido }}>
+              <option value="">{{ 'Seleccione…' if c.requerido else 'Automático' }}</option>
+              {% for grupo, opciones in catalogos[c.opciones] %}
+                {% if grupo %}<optgroup label="{{ grupo }}">{% endif %}
+                {% for v, texto in opciones %}
+                <option value="{{ v }}" {{ 'selected' if valor is not none and valor|string == v|string }}>{{ texto }}</option>
+                {% endfor %}
+                {% if grupo %}</optgroup>{% endif %}
+              {% endfor %}
+            </select>
+          {% endif %}
+          {% if c.ayuda %}<p class="ayuda">{{ c.ayuda }}</p>{% endif %}
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="form-pie">
+      <a class="boton" href="{{ url_for('conocimiento.lista', entidad=entidad, **ruta_args) }}">Cancelar</a>
+      <button type="submit" class="boton primario">{{ 'Guardar cambios' if editar_id else 'Crear ' ~ spec.singular }}</button>
+    </div>
+  </form>
+</section>
+{% endif %}
+
+<section class="panel sin-relleno">
+  <div class="panel-cabeza">
+    <h2>{{ filas|length }} {{ spec.titulo|lower }}{% if spec.estado %} <span class="texto-3 pequeno" style="font-weight:400">· {{ activas }} activas</span>{% endif %}</h2>
+  </div>
+  {% if filas %}
+  <div class="tabla-envoltura" style="margin-top:12px">
+  <table class="tabla">
+    <thead><tr>
+      {% for clave, titulo, formato in spec.columnas %}<th class="{{ 'num' if formato in ('num', 'decimal') }}">{{ titulo }}</th>{% endfor %}
+      {% if spec.estado %}<th>Estado</th>{% endif %}
+      <th></th>
+    </tr></thead>
+    <tbody>
+    {% for f in filas %}
+      {% set id_fila = f[spec.id] %}
+      {% set activa = f.get('activa', true) %}
+      <tr class="{{ 'inactiva' if not activa }} {{ 'seleccionada' if id_fila == editar_id }}">
+        {% for clave, titulo, formato in spec.columnas %}
+        {% set v = f.get(clave) %}
+        <td class="{{ 'num' if formato in ('num', 'decimal') }} {{ 'recorte' if formato == 'tildes' and clave in ('enunciado', 'descripcion', 'hipotesis') }}">
+          {%- if formato == 'tildes' -%}{{ (v or '—')|tildes }}
+          {%- elif formato == 'booleano' -%}{% if v %}<span class="insignia azul">Sí</span>{% else %}<span class="texto-3">No</span>{% endif %}
+          {%- elif formato == 'nivel' -%}{{ nivel(v) }}
+          {%- elif formato == 'regla' -%}<span class="codigo-regla">{{ v }}</span>
+          {%- elif formato == 'decimal' -%}{{ v|decimal }}
+          {%- elif formato.startswith('conteo:') -%}{{ f.get(formato[7:]) }} / {{ v }}
+          {%- else -%}{{ v if v is not none else '—' }}{%- endif -%}
+        </td>
+        {% endfor %}
+        {% if spec.estado %}<td>{{ estado_activo(activa) }}</td>{% endif %}
+        <td class="acciones-celda">
+          <div class="acciones">
+            {% if entidad == 'hipotesis' %}
+            <a class="boton chico" href="{{ url_for('conocimiento.granulos', id_hipotesis=id_fila) }}">Gránulos</a>
+            {% endif %}
+            <a class="boton chico" href="{{ url_for('conocimiento.lista', entidad=entidad, editar=id_fila, **ruta_args) }}">Editar</a>
+            {% if spec.estado %}
+            <form class="en-linea" method="post" action="{{ url_for('conocimiento.cambiar_estado', entidad=entidad, id_registro=id_fila, **ruta_args) }}">
+              {{ csrf() }}<input type="hidden" name="activa" value="{{ '0' if activa else '1' }}">
+              <button type="submit" class="boton chico {{ 'peligro' if activa else 'exito' }}">{{ 'Desactivar' if activa else 'Activar' }}</button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="vacio">No hay registros{% if id_area %} para el área seleccionada{% endif %}.</p>
+  {% endif %}
+</section>
+{% endblock %}

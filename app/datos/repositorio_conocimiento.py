@@ -113,6 +113,18 @@ class RepositorioConocimiento:
         )
         return filas[0] if filas else None
 
+    def codigos_de_reglas(self, ids_regla) -> dict:
+        """{id_regla: codigo} (la traza del motor guarda ids de regla)."""
+        ids = tuple(int(i) for i in ids_regla)
+        if not ids:
+            return {}
+        filas = self._db.consultar("SELECT id_regla, codigo FROM reglas WHERE id_regla IN %s", (ids,))
+        return {f["id_regla"]: f["codigo"] for f in filas}
+
+    def area(self, id_area: int):
+        fila = self._db.consultar("SELECT id_area, nombre, descripcion FROM areas WHERE id_area = %s", (id_area,))
+        return Area(**fila[0]) if fila else None
+
     def conteos(self):
         filas = self._db.consultar(
             "SELECT 'Areas' AS conocimiento, COUNT(*) AS cantidad FROM areas "
