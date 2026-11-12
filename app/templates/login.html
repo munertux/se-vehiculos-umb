@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ingreso · Sistema Experto de Diagnóstico Vehicular</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<style>
+  .login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .login-card { background: var(--tarjeta); border: 1px solid var(--borde); border-radius: 14px; padding: 32px; width: 100%; max-width: 380px; box-shadow: 0 6px 24px rgba(0,0,0,.07); }
+  .login-card h1 { font-size: 1.15rem; margin: 0 0 4px; }
+  .login-card .sub { color: #666; font-size: .85rem; margin: 0 0 22px; }
+  .campo { margin-bottom: 14px; }
+  .campo label { display: block; font-size: .82rem; margin-bottom: 5px; color: #444; font-weight: 600; }
+  .campo input { width: 100%; padding: 11px 12px; border: 1px solid var(--borde); border-radius: 8px; font-size: .95rem; }
+  .campo input:focus { outline: none; border-color: var(--rojo); }
+  .login-error { background: #fdecec; border: 1px solid #f1b3b3; color: #7a1414; padding: 10px 12px; border-radius: 8px; font-size: .85rem; margin-bottom: 16px; }
+  .login-marca { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+  .login-marca .punto { width: 34px; height: 34px; border-radius: 50%; background: var(--rojo); flex-shrink: 0; }
+  .login-pie { text-align: center; color: #999; font-size: .72rem; margin-top: 18px; }
+</style>
+</head>
+<body>
+  <div class="login-wrap">
+    <form class="login-card" method="post" action="{{ url_for('login_post') }}" autocomplete="off">
+      <div class="login-marca">
+        <span class="punto"></span>
+        <div>
+          <h1>Sistema experto de diagnóstico vehicular</h1>
+          <p class="sub">Universidad Manuela Beltrán · Acceso restringido</p>
+        </div>
+      </div>
+
+      {% if error %}
+      <div class="login-error">{{ error }}</div>
+      {% endif %}
+
+      <div class="campo">
+        <label for="usuario">Usuario</label>
+        <input type="text" id="usuario" name="usuario" required autofocus>
+      </div>
+
+      <div class="campo">
+        <label for="clave">Contraseña</label>
+        <input type="password" id="clave" name="clave" required>
+      </div>
+
+      <button type="submit" class="boton-primario" style="width:100%; margin-top:8px;">Ingresar</button>
+
+      <p class="login-pie">Credenciales validadas con hash PBKDF2-SHA256; la sesión viaja en cookie firmada, HttpOnly y solo por HTTPS.</p>
+    </form>
+  </div>
+</body>
+</html>

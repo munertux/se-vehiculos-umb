@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sistema Experto · Diagnóstico de Fallas en Vehículos</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-dot"></span>
+      <div>
+        <h1>Sistema experto de diagnóstico de fallas en vehículos</h1>
+        <p>Universidad Manuela Beltrán · Sistemas Expertos · Consulta al SE (RF03)</p>
+      </div>
+    </div>
+    <div class="topbar-der">
+      <div id="salud" class="salud">Conectando con la base de conocimiento…</div>
+      <a href="/logout" class="salir">Salir</a>
+    </div>
+  </header>
+
+  <main>
+    <section id="pantalla-inicio" class="panel">
+      <h2>1. Seleccione el área donde nota el problema</h2>
+      <p class="ayuda">El motor de inferencia consultará las 68 reglas SI-ENTONCES almacenadas en PostgreSQL y le mostrará, en orden de probabilidad, las posibles causas.</p>
+      <div id="areas" class="grid-areas">Cargando áreas…</div>
+    </section>
+
+    <section id="pantalla-pregunta" class="panel oculto">
+      <h2>2. Responda las preguntas del sistema</h2>
+      <div class="progreso"><div id="barra-progreso" class="barra"></div></div>
+      <div class="tarjeta-pregunta">
+        <p id="texto-pregunta" class="pregunta"></p>
+        <div id="opciones-respuesta" class="opciones"></div>
+      </div>
+      <button id="btn-reiniciar" class="enlace">Reiniciar consulta</button>
+    </section>
+
+    <section id="pantalla-resultado" class="panel oculto">
+      <h2>3. Hipótesis de falla más probables</h2>
+      <div id="advertencia" class="advertencia oculto"></div>
+      <div id="resultados" class="resultados"></div>
+      <button id="btn-nueva-consulta" class="boton-primario">Nueva consulta</button>
+    </section>
+  </main>
+
+  <footer>
+    Prototipo académico — orientación preliminar; no sustituye la revisión de un técnico automotriz.
+  </footer>
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
